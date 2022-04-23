@@ -13,7 +13,7 @@ def get_iou(bb1, bb2):
 	pass
 
 
-def selective_search(image, method="fast"):
+def selective_search(image, method="quality"):
 	# initialize OpenCV's selective search implementation and set the
 	# input image
 	ss = cv2.ximgproc.segmentation.createSelectiveSearchSegmentation()
@@ -29,6 +29,7 @@ def selective_search(image, method="fast"):
 	rects = ss.process()
 	# return the region proposal bounding boxes
 	return rects
+
 def get_iou2(x1, x2):
 	"""
 	Calculate the Intersection over Union (IoU) of two bounding boxes.
@@ -91,6 +92,7 @@ def get_iou2(x1, x2):
 	assert iou >= 0.0
 	assert iou <= 1.0
 	return iou
+
 def calc_iou(box1, box2):
 	x1,y1,w1,h1 =  box1
 	x2,y2,w2,h2 =  box2
@@ -150,8 +152,8 @@ def get_boxes_iou(pred_conf):
 		boxes = pred_conf[key]['boxes']
 		for box in boxes:
 			uniq = True
-			for res in results:
-				if get_iou2(box, res) > THRESHOLD:
+			for res in results:				
+				if get_iou2(box, res) > THRESHOLD or box[2] >= 90 or box[2] <= 50:
 					uniq = False
 					break
 			if uniq:
