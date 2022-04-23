@@ -84,6 +84,7 @@ def show_saliency_maps(X_tensor, y_tensor, model, idx2label):
     plt.show()
 
 def segment(img):
+    """(x,y,w,h)"""
     segments = []
     px = img.load()
     height = np.asarray(img).shape[0]
@@ -107,21 +108,6 @@ def classify(filename):
 
     class_idx = json.load(open("imagenet_class_index.json"))
     idx2label = {k:class_idx[str(k)][1] for k in range(len(class_idx))}
-
-    # img = np.asarray(Image.open(filename).convert('RGB'))
-    # # y = torch.argmax(model(X), dim=1)
-    # # show_saliency_maps(X, y, model, idx2label)
-
-    # gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
-    # gray = np.float32(gray)
-    # dst = cv2.cornerHarris(gray,2,5,0.02)
-    # #result is dilated for marking the corners, not important
-    # dst = cv2.dilate(dst,None)
-    # # Threshold for an optimal value, it may vary depending on the image.
-    # img[dst>0.0001*dst.max()]=[0,0,255]
-    # plt.figure()
-    # plt.imshow(img)
-    # plt.show()
 
     img = Image.open(filename).convert('RGB')
     segments = segment(img)

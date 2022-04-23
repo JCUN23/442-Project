@@ -19,6 +19,7 @@ ap.add_argument("-v", "--video", type=str,
 args = vars(ap.parse_args())
 ap.add_argument("-t", "--tracker", type=str, default="kcf",
 	help="OpenCV object tracker type")
+args["video"] = "images/1080p.mp4"
 
 if not args.get("video", False):
 	print("[INFO] starting video stream...")
@@ -59,11 +60,12 @@ while True:
 
 
 	#Classify first frame and initialize tracker and bounding boxes
-	if first_frame:
+	if frame_count % 5 == 0:
+		trackers.clear()
 		boundingBoxes = classify(frame)
 		first_frame = False
 		num_classified = len(boundingBoxes)
-		
+		print(f"classified {num_classified}")
 		#Initialize Trackers
 		for i in range(num_classified):
 			# if we are using OpenCV 3.2 OR BEFORE, we can use a special factory
@@ -87,9 +89,9 @@ while True:
 			# to track
 
 			#initialize bounding boxes
-			boundingBoxes.append(boundingBoxes[i])
-
-			tracker.init(frame, boundingBoxes[i])
+			#boundingBoxes.append(boundingBoxes[i])
+			box = boundingBoxes[i]
+			tracker.init(frame, box)
 
 			trackers.append(tracker) #Add tracker to array of trackers
 
@@ -105,6 +107,8 @@ while True:
 				(x, y, w, h) = [int(v) for v in box]
 				cv2.rectangle(frame, (x, y), (x + w, y + h),
 					(0, 255, 0), 2)
+			else:
+				trackers.remove(tracker)
 			# update the FPS counter
 			fps.update()
 			fps.stop()

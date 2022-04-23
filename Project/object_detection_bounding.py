@@ -8,9 +8,11 @@ import random
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
+from region_proposal_detection import selective_search, get_best_boxes
+from PIL import Image 
+
 SQUEEZENET_MEAN = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float)
 SQUEEZENET_STD = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float)
-from PIL import Image
 
 def preprocess(img, size=224):
     transform = T.Compose([
@@ -44,44 +46,6 @@ def blur_image(X, sigma=1):
     X.copy_(torch.Tensor(X_np).type_as(X))
     return X
 
-def compute_saliency_maps(X, y, model):
-    # Make input tensor require gradient
-    X.requires_grad_()
-
-    saliency = None
-    # 1. Do the forward pass for input X to get the prediction score y pred.
-    y_pred = model.forward(X)
-    # 2. Take the score/probability of the correct class (indicated by y) from y pred and sum over the minibatch to get loss.
-    loss = torch.sum(y_pred[torch.arange(0, y.size()[0]), y])
-    # # 3. Call loss.backward() and extract the gradient on input X as X grad (gradient will be calculated
-    # # automatically).
-    loss.backward()
-    # # 4. Finally, take the maximum between the absolute value of X grad and 1 as the final saliency map.
-    saliency, _ = torch.max(torch.abs(X.grad), 1)
-    # ##############################################################################
-    # #               END OF YOUR CODE                                             #
-    # ##############################################################################
-    return saliency
-
-def show_saliency_maps(X_tensor, y_tensor, model, idx2label):
-    # Compute saliency maps for images in X
-    saliency = compute_saliency_maps(X_tensor, y_tensor, model)
-
-    # Convert the saliency map from Torch Tensor to numpy array and show images
-    # and saliency maps together.
-    saliency = saliency.to('cpu').numpy()
-    N = X_tensor.shape[0]
-    plt.figure(figsize=(8,8))
-    for i in range(N):
-        plt.subplot(2, N, i + 1)
-        plt.imshow(deprocess(X_tensor[i].cpu().unsqueeze(0)))
-        plt.axis('off')
-        plt.title(idx2label[y_tensor[i].item()])
-        plt.subplot(2, N, N + i + 1)
-        plt.imshow(saliency[i], cmap=plt.cm.hot)
-        plt.axis('off')
-        plt.gcf().set_size_inches(12, 8)
-    plt.show()
 
 def segment(img):
     segments = []
@@ -104,47 +68,36 @@ def classify(img):
     for param in model.parameters():
         param.requires_grad = False
         
-    # Make sure the model is in "eval" mode
     model.eval()
 
     class_idx = json.load(open("imagenet_class_index.json"))
     idx2label = {k:class_idx[str(k)][1] for k in range(len(class_idx))}
 
-    # img = np.asarray(Image.open(filename).convert('RGB'))
-    # # y = torch.argmax(model(X), dim=1)
-    # # show_saliency_maps(X, y, model, idx2label)
 
-    # gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
-    # gray = np.float32(gray)
-    # dst = cv2.cornerHarris(gray,2,5,0.02)
-    # #result is dilated for marking the corners, not important
-    # dst = cv2.dilate(dst,None)
-    # # Threshold for an optimal value, it may vary depending on the image.
-    # img[dst>0.0001*dst.max()]=[0,0,255]
-    # plt.figure()
-    # plt.imshow(img)
-    # plt.show()
+    segments_ss = selective_search(img)
 
-    #img = Image.open(filename).convert('RGB')
-    segments, segment_coors = segment(img)
+    pred_conf = {} # label -> boxes, prob
     good_labels = ['sports_car', 'trailer_truck', 'traffic_light', 'go-kart', 'convertible', 'golfcart', 'moving-van']
-    good_coordinates = []
-    for i, seg in enumerate(segments):
-        seg_coor = segment_coors[i]
-        X = preprocess(seg)
-        pred_class = torch.argmax(model(X)).item()
-        #plt.figure(figsize=(6,8))
-        #plt.title('Predicted Class: %s' % idx2label[pred_class])
-        #plt.axis('off')
-        if idx2label[pred_class] in good_labels:
-            #plt.imshow(seg)
-            #plt.savefig(f'{filename.split(".")[0]}-{i}_pred.jpg')
-            #plt.show()
-            print(torch.max(model(X)))
-            if (torch.max(model(X)) < 20):
-                #Hardcoded thresholding
-                continue
-            print(idx2label[pred_class], seg_coor)
-            good_coordinates.append(seg_coor)
+    for i, seg in enumerate(segments_ss):
+        x,y,w,h = seg
+
+        img_wnd = Image.fromarray(np.asarray(img)[y:y+h,x:x+w])
+        X = preprocess(img_wnd)
+        result = model(X)
+        pred_class = torch.argmax(result).item()
+        class_label = idx2label[pred_class]
+
+        if class_label in good_labels:
+            #print(idx2label[pred_class], seg)
+            if class_label not in pred_conf:
+                pred_conf[class_label] = {}
+            if 'boxes' not in pred_conf[class_label]:
+                pred_conf[class_label]['boxes'] = []
+            if 'prob' not in pred_conf[class_label]:
+                pred_conf[class_label]['prob'] = []
+
+            pred_conf[class_label]['boxes'].append(seg)
+            pred_conf[class_label]['prob'].append(pred_class)
     
-    return good_coordinates
+    
+    return get_best_boxes(pred_conf)
