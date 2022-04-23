@@ -125,7 +125,7 @@ while True:
 			if success:
 				(x, y, w, h) = [int(v) for v in box]
 				cv2.rectangle(frame, (x, y), (x + w, y + h),
-					(0, 255, 0), 2)
+					(255, 0, 0), 1)
 			else:
 				trackers.remove(tracker)
 			# update the FPS counter
