@@ -77,7 +77,7 @@ def classify(img):
     segments_ss = selective_search(img)
 
     pred_conf = {} # label -> boxes, prob
-    good_labels = ['sports_car', 'trailer_truck', 'traffic_light', 'go-kart', 'convertible', 'golfcart', 'moving-van']
+    good_labels = ['sports_car', 'trailer_truck', 'traffic_light', 'convertible', 'moving-van']
     for i, seg in enumerate(segments_ss):
         x,y,w,h = seg
 
@@ -88,7 +88,7 @@ def classify(img):
         class_label = idx2label[pred_class]
 
         if class_label in good_labels:
-            #print(idx2label[pred_class], seg)
+            # print(idx2label[pred_class], seg)
             if class_label not in pred_conf:
                 pred_conf[class_label] = {}
             if 'boxes' not in pred_conf[class_label]:
