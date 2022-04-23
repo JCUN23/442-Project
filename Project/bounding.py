@@ -62,15 +62,13 @@ frames = []
 #video = cv2.VideoWriter('filename.avi', 
                          #cv2.VideoWriter_fourcc(*'MJPG'),
                          #10, frameSize=(width,height),fps=10)
-while len(frames) < 300:
+while True:
 	# grab the current frame, then handle if we are using a
 	# VideoStream or VideoCapture object
 	frame = vs.read()
 	frame = frame[1] if args.get("video", False) else frame
 	frame_count += 1
-	if frame_count == vs.get(cv2.CAP_PROP_FRAME_COUNT):
-		frame_count = 0 #Or whatever as long as it is the same as next line
-		vs.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
 	# check to see if we have reached the end of the stream
 	if frame is None:
 		break
@@ -81,7 +79,7 @@ while len(frames) < 300:
 
 	
 	#Classify first frame and initialize tracker and bounding boxes
-	if frame_count % 5 == 0:
+	if frame_count % 10 == 0:
 		trackers.clear()
 		boundingBoxes = classify(frame)
 		first_frame = False
