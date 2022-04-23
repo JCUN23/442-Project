@@ -8,7 +8,7 @@ import random
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
-from region_proposal_detection import selective_search, get_best_boxes
+from region_proposal_detection import selective_search, get_best_boxes, get_boxes_iou
 from PIL import Image 
 
 SQUEEZENET_MEAN = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float)
@@ -100,4 +100,4 @@ def classify(img):
             pred_conf[class_label]['prob'].append(pred_class)
     
     
-    return get_best_boxes(pred_conf)
+    return get_boxes_iou(pred_conf)

@@ -11,7 +11,21 @@ def drawBox(frame, x, y, w, h):
 	cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 	return frame
 
+def write_video(file_path, frames, fps):
+	"""
+	Writes frames to an mp4 video file
+	:param file_path: Path to output video, must end with .mp4
+	:param frames: List of PIL.Image objects
+	:param fps: Desired frame rate
+	"""
+	h, w = frames[0].shape[:2]
+	fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+	writer = cv2.VideoWriter(file_path, fourcc, fps, (w, h))
 
+	for frame in frames:
+		writer.write(frame)
+
+	writer.release() 
 #Runs image classifier, then adds a bounding box on every classified object
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", type=str,
@@ -41,7 +55,14 @@ first_frame = True
 boundingBoxes = []
 trackers = []
 
-while True:
+width  = vs.get(3)  # float `width`
+height = vs.get(4)  # float `height`
+
+frames = []
+#video = cv2.VideoWriter('filename.avi', 
+                         #cv2.VideoWriter_fourcc(*'MJPG'),
+                         #10, frameSize=(width,height),fps=10)
+while len(frames) < 300:
 	# grab the current frame, then handle if we are using a
 	# VideoStream or VideoCapture object
 	frame = vs.read()
@@ -58,7 +79,7 @@ while True:
 	frame = imutils.resize(frame, width=500)
 	(H, W) = frame.shape[:2]
 
-
+	
 	#Classify first frame and initialize tracker and bounding boxes
 	if frame_count % 5 == 0:
 		trackers.clear()
@@ -125,7 +146,9 @@ while True:
 				cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 	# show the output frame
-	cv2.imshow("Frame", frame)
+	#video.save(frame)
+	frames.append(frame)
+	#cv2.imshow("Frame", frame)
 	key = cv2.waitKey(1) & 0xFF
 
 	"""
@@ -150,5 +173,7 @@ if not args.get("video", False):
 # otherwise, release the file pointer
 else:
 	vs.release()
+#video.release()
+write_video("tracking.mp4", frames, 30)
 # close all windows
 cv2.destroyAllWindows()

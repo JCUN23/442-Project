@@ -110,8 +110,68 @@ def calc_iou(box1, box2):
 	iou = (dist_x * dist_y) / (box1_area+box2_area)
 	return iou
 
-
+def is_contained(x1, x2):
+	#return true if x1 is inside x2
+	bb1 = {
+		'x1' : x1[0],
+		'y1' : x1[1],
+		'x2' : x1[0] +  x1[3],
+		'y2' : x1[1]+  x1[2],
+	}
+	bb2 = {
+		'x1' : x2[0],
+		'y1' : x2[1],
+		'x2' : x2[0] +  x2[3],
+		'y2' : x2[1]+  x2[2],
+	}
+	return bb1['x1'] > bb2['x1'] and bb1['y1'] > bb2['y1'] and bb1['y2'] < bb2['y2'] and bb1['x2'] < bb2['x1']
+	
 # find smallest bounding for each item # then return 
+def get_boxes_iou(pred_conf):
+
+	results = []
+	THRESHOLD = 0.05
+	CONF = .95
+	for key in pred_conf.keys():
+		max_prob = max(pred_conf[key]['prob'])
+		pred_conf[key]['prob'] = [x / max_prob for x in pred_conf[key]['prob'] ]
+
+		pred_conf[key]['boxes'] = [l.tolist() for l in pred_conf[key]['boxes']]
+		highest = [i  for i,x in enumerate(pred_conf[key]['prob']) if x > CONF]
+		probs = []
+		result = [] 
+		[result.append(x) for i,x in enumerate(pred_conf[key]['boxes']) if x not in result and i in highest ] 
+		[probs.append(x) for i,x in enumerate(pred_conf[key]['prob']) if i in highest ] 
+
+		pred_conf[key]['boxes'] = result
+		pred_conf[key]['prob'] = probs
+		
+	for key in pred_conf.keys():
+		boxes = pred_conf[key]['boxes']
+		for box in boxes:
+			uniq = True
+			for res in results:
+				if get_iou2(box, res) > THRESHOLD:
+					uniq = False
+					break
+			if uniq:
+				results.append(box)
+	""" for key in pred_conf.keys():
+		results = []
+		boxes = pred_conf[key]['boxes']
+		for box in boxes:
+			contained = False
+			for box2 in boxes:
+				if box == box2:
+					continue
+				if is_contained(box2, box):
+					# has contained dont add
+					contained = True
+			if not contained:
+				results.append(box)
+		pred_conf[key]['boxes'] = results """
+
+	return results
 def get_best_boxes(pred_conf):
 	THRESHOLD = 0.60
 	converged = False
