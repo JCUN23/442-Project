@@ -5,7 +5,7 @@ import torchvision
 import torchvision.transforms as T
 import random
 import numpy as np
-from object_detection import classify
+from object_detection_bounding import classify
 
 
 files = ['images/scene.png']
